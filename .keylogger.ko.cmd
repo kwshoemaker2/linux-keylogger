@@ -1,0 +1,1 @@
+cmd_/home/student/keylogger/keylogger.ko := ld -r -m elf_x86_64 -T /usr/src/linux-headers-3.13.0-49-generic/scripts/module-common.lds --build-id  -o /home/student/keylogger/keylogger.ko /home/student/keylogger/keylogger.o /home/student/keylogger/keylogger.mod.o
