@@ -4,90 +4,28 @@
 
 #define KBD_INT 1
 
-char to_character(unsigned char scancode)
+#define LSHIFT_ON 	0x2A
+#define RSHIFT_ON 	0x36
+#define LSHIFT_OFF 	0xAA
+#define RSHIFT_OFF 	0xB6
+#define CAPS_ON		0x3A
+#define CAPS_OFF	0xBA
+
+#define CONTROL_CODE 	5
+#define NEW_CHARACTER	6
+
+
+static int cap_on = 0;
+
+int handle_scancode(unsigned char scancode, char *dest)
 {
-	switch(scancode)
-	{
-		case 0x1E:
-			return 'a';
+	if(scancode == LSHIFT_ON || scancode == RSHIFT_ON || scancode == CAPS_ON) {
+		cap_on = 1;
+		return CONTROL_CODE;
 
-		case 0x30:
-			return 'b';
-
-		case 0x2E:
-			return 'c';
-
-		case 0x20:
-			return 'd';
-
-		case 0x12:
-			return 'e';
-
-		case 0x21:
-			return 'f';
-
-		case 0x22:
-			return 'g';
-
-		case 0x23:
-			return 'h';
-
-		case 0x17:
-			return 'i';
-
-		case 0x24:
-			return 'j';
-
-		case 0x25:
-			return 'k';
-
-		case 0x26:
-			return 'l';
-
-		case 0x32:
-			return 'm';
-
-		case 0x31:
-			return 'n';
-
-		case 0x18:
-			return 'o';
-
-		case 0x19:
-			return 'p';
-
-		case 0x10:
-			return 'q';
-
-		case 0x13:
-			return 'r';
-
-		case 0x1F:
-			return 's';
-
-		case 0x14:
-			return 't';
-
-		case 0x16:
-			return 'u';
-
-		case 0x2F:
-			return 'v';
-
-		case 0x11:
-			return 'w';
-			
-		case 0x2D:
-			return 'x';
-
-		case 0x15:
-			return 'y';
-
-		case 0x2C:
-			return 'z';
-
-		default:
-			return '\0';
+	} else if(scancode == LSHIFT_OFF || scancode == RSHIFT_OFF || scancode == CAPS_OFF) {
+		cap_on = 0;
+		return CONTROL_CODE;
 	}
 }
 
@@ -97,12 +35,15 @@ char to_character(unsigned char scancode)
 irq_handler_t irq_handler (int irq, void *dev_id, struct pt_regs *regs)
 {
 	static unsigned char scancode;
+	int reslt;
 	char c;
 	/*
 	 Read keyboard status
 	*/
 	scancode = inb (0x60);
-	c = to_character(scancode);
+
+	// handle the scancode
+	reslt = handle_scancode(scancode, &c);
 	if(c != '\0') {
 		printk("\n%c was pressed", c);
 	
