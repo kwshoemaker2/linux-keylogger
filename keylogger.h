@@ -5,7 +5,6 @@
 #define LSHIFT_OFF 	0xAA
 #define RSHIFT_OFF 	0xB6
 #define CAPS_ON		0x3A
-#define CAPS_OFF	0xBA
 
 #define CONTROL_CODE 	5
 #define NEW_CHAR		6
@@ -71,16 +70,14 @@ int handle_scancode(unsigned char scancode, char *dest)
 		shift_on = 1;
 		return CONTROL_CODE;
 	
+	// for caps lock, the keyboard will generate an on-off interrupt regardless of whether
+	// the caps lock is turned on or off
 	} else if(scancode == CAPS_ON) {
-		cap_on = 1;
+		cap_on = !cap_on;
 		return CONTROL_CODE;
 	
 	} else if(scancode == LSHIFT_OFF || scancode == RSHIFT_OFF) {
 		shift_on = 0;
-		return CONTROL_CODE;
-	
-	} else if(scancode == CAPS_OFF) {
-		cap_on = 0;
 		return CONTROL_CODE;
 	}
 
@@ -95,6 +92,7 @@ int handle_scancode(unsigned char scancode, char *dest)
 
 	} else {
 		c = lookup_shifton[ind];
+		// this part still needs testing...
 		if(c >= 'A' && c <= 'Z') {
 			c += 32;
 		}

@@ -20,11 +20,9 @@ irq_handler_t irq_handler (int irq, void *dev_id, struct pt_regs *regs)
 
 	// handle the scancode
 	reslt = handle_scancode(scancode, &c);
-	if(c != '\0') {
-		printk("\n%c was pressed", c);
-	
-	} else {
-		printk ("\nYou pressed: %x", scancode);
+	printk("scancode: %x\n", scancode);
+	if(reslt == NEW_CHAR) {
+		printk(KERN_INFO "User pressed: %c\n", c);
 	}
 
 	return (irq_handler_t) IRQ_HANDLED;
