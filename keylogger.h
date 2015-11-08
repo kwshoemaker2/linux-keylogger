@@ -60,10 +60,13 @@ static int shift_on = 0;
 static int cap_on = 0;
 /** Takes in a scancode and destination for a char
   * Returns CONTROL_CODE if the scancode indicates shift or capslock being turned on or off
-  * Otherwise, returns NEW_CHARACTER and looks up the character to set dest to in a lookup table
+  * Returns UNKNOWN_CHAR if it isnt actually a char that is printed on the screen
+  * Otherwise, returns NEW_CHAR and looks up the character to set dest to in a lookup table
   */
 int handle_scancode(unsigned char scancode, char *dest)
 {
+	char c;
+	int ind = (int)scancode;
 	if(scancode == LSHIFT_ON || scancode == RSHIFT_ON) {
 		shift_on = 1;
 		return CONTROL_CODE;
@@ -80,7 +83,27 @@ int handle_scancode(unsigned char scancode, char *dest)
 		cap_on = 0;
 		return CONTROL_CODE;
 	}
-	
+
+	if(!shift_on && !cap_on) {
+		c = lookup_normal[ind];
+
+	} else if(shift_on && !cap_on) {
+		c = lookup_shifton[ind];
+
+	} else if(!shift_on && cap_on) {
+		c = lookup_capson[ind];
+
+	} else {
+		c = lookup_shifton[ind];
+		if(c >= 'A' && c <= 'Z') {
+			c += 32;
+		}
+	}
+
+	if(c != 0) {
+		*dest = c;
+		return NEW_CHAR;
+	}
 	return UNKNOWN_CHAR;
 }
 
