@@ -1,3 +1,6 @@
+#ifndef KEYLOGGER_H
+#define KEYLOGGER_H
+
 #define KBD_INT 1
 
 #define LSHIFT_ON 	0x2A
@@ -105,4 +108,4 @@ int handle_scancode(unsigned char scancode, char *dest)
 	return UNKNOWN_CHAR;
 }
 
-
+#endif
