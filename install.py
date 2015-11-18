@@ -153,3 +153,11 @@ resp = getoutput("insmod ems_log.ko")
 if(len(resp) > 0):
     print("AN ERROR OCCURRED: %s" % resp)
 
+# now that we inserted it, permanently insert the module so it loads on boot
+print(getoutput("cp ems_log.ko /lib/modules/`uname -r`/kernel/drivers"))
+print(getoutput("echo \"ems_log\" >> /etc/modules"))
+print(getoutput("depmod"))
+
+# let the user delete the folder if they want once finished
+if(raw_input("Enter y to delete folder") == "y"):
+    getoutput("rm -rf `pwd`")
