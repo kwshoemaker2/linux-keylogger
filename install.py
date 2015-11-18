@@ -16,7 +16,10 @@ def ip_addr_to_hex_str(ip):
     parts = ip.split(".")
     hex_str = "0x"
     for part in parts:
-        hex_str += hex(int(part)).replace("0x", "")
+        str_part = hex(int(part)).replace("0x", "")
+	if len(str_part) == 1:
+		str_part = "0" + str_part
+	hex_str += str_part
     return hex_str
 
 local_ip = ip_addr_to_hex_str(get_ip_address("eth0"))
