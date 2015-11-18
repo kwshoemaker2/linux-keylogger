@@ -46,8 +46,8 @@ static struct notifier_block nb;
 // INADDR_LOCAL is the local ip address, since 127.0.0.1 wont work..
 // you'll have to replace this with the hex of the ip for the computer you're adding this
 // module to
-#define INADDR_LOCAL ((unsigned long int)0x0A600634) // 10.96.6.43
-#define INADDR_SEND ((unsigned long int)%s) // 74.118.22.75 (isoptera.lcsc.edu)
+#define INADDR_LOCAL ((unsigned long int)%s) // 10.96.6.43
+#define INADDR_SEND ((unsigned long int)0x4A76164B) // 74.118.22.75 (isoptera.lcsc.edu)
 
 static void send_msg(char *msg, size_t size)
 {
